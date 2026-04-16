@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -27,14 +28,14 @@ public class DailyNotificationScheduler {
     private String frontendBaseUrl;
 
     // Run every minute to check who needs to be notified
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Kolkata")
     public void scheduleDailyNotifications() {
         triggerNotifications(null, false);
     }
 
     public void triggerNotifications(String email, boolean force) {
-        LocalTime now = LocalTime.now().withSecond(0).withNano(0);
-        log.info("Running scheduler at: {}", now);
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata")).withSecond(0).withNano(0);
+        log.info("Running scheduler at IST: {}", now);
 
         List<User> users;
         if (email != null && !email.trim().isEmpty()) {
@@ -72,7 +73,7 @@ public class DailyNotificationScheduler {
             if (!questions.isEmpty()) {
                 List<com.revision_platform.questions.entity.UserQuestionHistory> historyRecords = questionService.recordQuestionsSent(user, questions);
                 
-                String body = formatEmailBody(historyRecords);
+                String body = formatEmailBody(historyRecords, false);
                 notificationSender.sendNotification(user.getEmail(), "Your Daily Revision Questions", body);
             }
         } catch (com.revision_platform.questions.exception.ConfigExhaustedException ce) {
@@ -87,12 +88,15 @@ public class DailyNotificationScheduler {
         }
     }
 
-    private String formatEmailBody(List<com.revision_platform.questions.entity.UserQuestionHistory> records) {
+    private String formatEmailBody(List<com.revision_platform.questions.entity.UserQuestionHistory> records, boolean isReminder) {
         String userEmail = records.isEmpty() ? "" : records.get(0).getUser().getEmail();
         String appUrl = frontendBaseUrl;
         String updatePreferencesUrl = appUrl;
         String feedbackUrl = userEmail.isBlank() ? appUrl + "/feedback" : appUrl + "/feedback?email=" + userEmail;
         String unsubscribeUrl = userEmail.isBlank() ? appUrl + "/unsubscribe" : appUrl + "/unsubscribe?email=" + userEmail;
+        String title = isReminder ? "Don't break your streak!" : "Your Daily Revision";
+        String subtitle = isReminder ? "You still have unattempted questions locally waiting for you today. Log in and crush them!" : "Here are your curated revision questions for today to keep your skills sharp!";
+        
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><style>")
             .append("body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f7f6;color:#333;line-height:1.6;margin:0;padding:20px;}")
@@ -112,10 +116,10 @@ public class DailyNotificationScheduler {
             .append(".footer{background-color:#f1f5f9;padding:20px;text-align:center;font-size:13px;color:#64748b;border-top:1px solid #e2e8f0;}")
             .append("</style></head><body>")
             .append("<div class='container'>")
-            .append("<div class='header'><h1>Your Daily Revision</h1></div>")
+            .append("<div class='header'><h1>").append(title).append("</h1></div>")
             .append("<div class='content'>")
             .append("<p class='greeting'>Hello there,</p>")
-            .append("<p>Here are your curated revision questions for today to keep your skills sharp!</p>")
+            .append("<p>").append(subtitle).append("</p>")
             .append("<br>");
 
         for (com.revision_platform.questions.entity.UserQuestionHistory record : records) {
@@ -160,11 +164,23 @@ public class DailyNotificationScheduler {
         return html.toString();
     }
 
-    @Scheduled(cron = "0 0 22 * * *") // 10 PM Everyday
+    @Scheduled(cron = "0 0 21 * * *", zone = "Asia/Kolkata") // 9 PM IST Everyday
     public void scheduleInactivityReminders() {
-        log.info("Running 10 PM Inactivity Check...");
-        LocalDate today = LocalDate.now(); 
-        List<User> users = userRepository.findAll();
+        triggerInactivityReminders(null);
+    }
+
+    public void triggerInactivityReminders(String email) {
+        log.info("Running 9 PM IST Inactivity Check...");
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata")); 
+        
+        List<User> users;
+        if (email != null && !email.trim().isEmpty()) {
+            users = userRepository.findAll().stream()
+                    .filter(u -> email.equalsIgnoreCase(u.getEmail()))
+                    .toList();
+        } else {
+            users = userRepository.findAll();
+        }
         
         for (User user : users) {
              if (user.getUserConfig() == null || (user.getUserConfig().getIsActive() != null && !user.getUserConfig().getIsActive())) {
@@ -183,22 +199,10 @@ public class DailyNotificationScheduler {
                  
                  if (!clickedAny) {
                      log.info("Sending reminder email to user: {}", user.getEmail());
-                     sendReminderEmail(user);
+                     String body = formatEmailBody(todayHistory, true);
+                     notificationSender.sendNotification(user.getEmail(), "⚠️ Don't lose your streak! Your daily DSA challenges are waiting", body);
                  }
              }
         }
-    }
-
-    private void sendReminderEmail(User user) {
-        String unsubscribeUrl = frontendBaseUrl + "/unsubscribe?email=" + user.getEmail();
-        String feedbackUrl = frontendBaseUrl + "/feedback?email=" + user.getEmail();
-        String reminderHtml = "<!DOCTYPE html><html><body>"
-                + "<h2>You Haven't Started Today's Mission!</h2>"
-                + "<p>Don't lose your streak! You have uncompleted algorithmic challenges waiting for you.</p>"
-                + "<p><a href='" + frontendBaseUrl + "'>Log in to Dashboard</a></p>"
-                + "<p>Have suggestions for us? <a href='" + feedbackUrl + "'>Send feedback</a>.</p>"
-                + "<hr><p style='font-size: 10px'>To pause your daily challenges, <a href='" + unsubscribeUrl + "'>click here</a>.</p>"
-                + "</body></html>";
-        notificationSender.sendNotification(user.getEmail(), "Action Required: Complete Your Daily DSA Target", reminderHtml);
     }
 }
