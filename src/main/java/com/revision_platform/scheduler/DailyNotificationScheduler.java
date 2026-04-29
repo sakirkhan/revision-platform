@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Random;
 
 @Component
 @Slf4j
@@ -149,6 +150,29 @@ public class DailyNotificationScheduler {
             }
             html.append("</div></div>");
         }
+
+        // --- Fetch and inject meme ---
+        String[][] hindiMemes = {
+            {"Arey bhai, abhi coding nahi karega to kab karega?", "https://media.giphy.com/media/LmNwrBhejkK9EFP504/giphy.gif"},
+            {"Jo daily karta rahega kaam, wo kabhi nahi hoga fail! 🚀", "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif"},
+            {"Bug fix karte karte subah ho gayi bro... 😭", "https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif"},
+            {"Jab production code first time mein chal jaye! 🕺", "https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif"},
+            {"Bhai bas ek chota sa feature hai, 5 minute lagenge... 😅", "https://media.giphy.com/media/3o6wrebnKWmvx4ZBio/giphy.gif"},
+            {"Production me fat gaya toh mera naam mat lena! 🏃", "https://media.giphy.com/media/jUwpcgza92QC8/giphy.gif"},
+            {"Weekend plan: Neetcode 150... Reality: 😴", "https://media.giphy.com/media/mguPrVJAnEHIY/giphy.gif"},
+            {"Me explaining my code to the senior developer 🤯", "https://media.giphy.com/media/l0IylOPIQiGW9ODlK/giphy.gif"},
+            {"Bina StackOverflow ke ek line code bhi likh du toh... 😂", "https://media.giphy.com/media/YQitE4YNQxWuOhmDfb/giphy.gif"}
+        };
+        
+        int randomIndex = new Random().nextInt(hindiMemes.length);
+        String memeTitle = hindiMemes[randomIndex][0];
+        String memeUrl = hindiMemes[randomIndex][1];
+
+        html.append("<div style='margin-top: 35px; text-align: center; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;'>")
+            .append("<h4 style='margin-top: 0; color: #4f46e5; font-size: 16px;'>Daily Brain Break ☕</h4>")
+            .append("<p style='font-size: 14px; color: #475569;'>").append(memeTitle).append("</p>")
+            .append("<img src='").append(memeUrl).append("' alt='Tech Meme' style='max-width: 100%; height: auto; border-radius: 8px;' />")
+            .append("</div>");
 
         html.append("<p style='margin-top: 35px;'>Happy coding and keep grinding!</p>")
             .append("</div>")
