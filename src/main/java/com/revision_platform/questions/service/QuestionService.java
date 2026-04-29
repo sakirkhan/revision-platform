@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +29,7 @@ public class QuestionService {
     }
 
     public List<Question> getOrGenerateTodayQuestions(User user) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         List<UserQuestionHistory> todayHistory = historyRepository.findByUserIdAndSentDate(user.getId(), today);
         
         if (!todayHistory.isEmpty()) {
@@ -36,9 +37,7 @@ public class QuestionService {
                     .map(UserQuestionHistory::getQuestion)
                     .collect(Collectors.toList());
             
-            int limit = (user.getUserConfig() != null && user.getUserConfig().getQuestionCountPerDay() != null) 
-                        ? user.getUserConfig().getQuestionCountPerDay() 
-                        : com.revision_platform.common.constants.DefaultConfigConstants.DEFAULT_QUESTION_LIMIT;
+            int limit = getQuestionLimitForToday(user.getUserConfig());
             
             if (cached.size() > limit) {
                 return cached.subList(0, limit);
@@ -56,12 +55,12 @@ public class QuestionService {
 
         // Defaults
         String preferredList = (config != null && config.getPreferredList() != null) ? config.getPreferredList() : DefaultConfigConstants.DEFAULT_QUESTION_SOURCE_LIST;
-        int limit = (config != null && config.getQuestionCountPerDay() != null) ? config.getQuestionCountPerDay() : DefaultConfigConstants.DEFAULT_QUESTION_LIMIT;
+        int limit = getQuestionLimitForToday(config);
         int cutoffDays = (config != null && config.getRevisionDurationDays() != null) ? config.getRevisionDurationDays() : DefaultConfigConstants.DEFAULT_REVISION_DURATION_DAYS;
 
         // Baseline un-sent candidates pool
         List<Question> candidates = questionRepository.findBySourceList(preferredList);
-        LocalDate cutoffDate = LocalDate.now().minusDays(cutoffDays);
+        LocalDate cutoffDate = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(cutoffDays);
         List<UserQuestionHistory> history = historyRepository.findByUserIdAndSentDateAfter(user.getId(), cutoffDate);
         Set<Long> sentQuestionIds = history.stream().map(h -> h.getQuestion().getId()).collect(Collectors.toSet());
         candidates = candidates.stream().filter(q -> !sentQuestionIds.contains(q.getId())).collect(Collectors.toList());
@@ -140,7 +139,7 @@ public class QuestionService {
     }
 
     public List<UserQuestionHistory> recordQuestionsSent(User user, List<Question> questions) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         List<UserQuestionHistory> histories = questions.stream()
                 .map(q -> UserQuestionHistory.builder()
                         .user(user)
@@ -150,5 +149,39 @@ public class QuestionService {
                         .build())
                 .collect(Collectors.toList());
         return historyRepository.saveAll(histories);
+    }
+
+    private int getQuestionLimitForToday(UserConfig config) {
+        if (config == null) {
+            return DefaultConfigConstants.DEFAULT_QUESTION_LIMIT;
+        }
+        
+        java.time.DayOfWeek dayOfWeek = LocalDate.now(ZoneId.of("Asia/Kolkata")).getDayOfWeek();
+        boolean isWeekend = dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY;
+        
+        if (isWeekend && config.getQuestionCountPerWeekend() != null) {
+            return config.getQuestionCountPerWeekend();
+        }
+        
+        return config.getQuestionCountPerDay() != null ? config.getQuestionCountPerDay() : DefaultConfigConstants.DEFAULT_QUESTION_LIMIT;
+    }
+
+    public java.util.Map<String, List<Question>> getUserHistoryByTopic(User user) {
+        List<UserQuestionHistory> history = historyRepository.findByUserIdAndSentDateAfter(user.getId(), LocalDate.of(2000, 1, 1));
+        return history.stream()
+                .map(UserQuestionHistory::getQuestion)
+                .collect(Collectors.groupingBy(q -> q.getTopic() != null ? q.getTopic().getName() : "General"));
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void resetTopicHistory(User user, String topicName) {
+        List<UserQuestionHistory> history = historyRepository.findByUserIdAndSentDateAfter(user.getId(), LocalDate.of(2000, 1, 1));
+        List<UserQuestionHistory> toDelete = history.stream()
+                .filter(h -> {
+                    String tName = h.getQuestion().getTopic() != null ? h.getQuestion().getTopic().getName() : "General";
+                    return tName.equalsIgnoreCase(topicName);
+                })
+                .collect(Collectors.toList());
+        historyRepository.deleteAll(toDelete);
     }
 }

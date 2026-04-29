@@ -139,7 +139,6 @@ public class DailyNotificationScheduler {
                 
             html.append("<div style='margin-bottom: 15px;'>")
                 .append("<span class='badge ").append(difficultyClass).append("'>").append(q.getDifficulty().name()).append("</span>")
-                .append("<span class='badge badge-topic'>").append(topicName).append("</span>")
                 .append("</div>")
                 .append("<div>")
                 .append("<a href='").append(trackingUrl).append("&dest=leetcode' class='action-button' style='background-color: #4f46e5; margin-right: 12px;' target='_blank'>Solve on LeetCode</a>");
@@ -153,10 +152,13 @@ public class DailyNotificationScheduler {
 
         html.append("<p style='margin-top: 35px;'>Happy coding and keep grinding!</p>")
             .append("</div>")
+            .append("<div style='background-color: #eef2f6; padding: 30px 20px; text-align: center; border-top: 2px dashed #cbd5e1;'>")
+            .append("<h4 style='margin-top: 0; color: #475569; font-size: 16px; margin-bottom: 20px;'>Manage Your Daily Prep</h4>")
+            .append("<a href='").append(updatePreferencesUrl).append("' style='display: inline-block; padding: 10px 15px; background-color: #ffffff; color: #4f46e5; text-decoration: none; border-radius: 6px; font-weight: bold; border: 1px solid #4f46e5; margin: 5px;'>⚙️ Update Plan</a>")
+            .append("<a href='").append(unsubscribeUrl).append("' style='display: inline-block; padding: 10px 15px; background-color: #fee2e2; color: #dc2626; text-decoration: none; border-radius: 6px; font-weight: bold; border: 1px solid #ef4444; margin: 5px;'>⏸️ Pause Emails</a>")
+            .append("<a href='").append(feedbackUrl).append("' style='display: inline-block; padding: 10px 15px; background-color: #ffffff; color: #059669; text-decoration: none; border-radius: 6px; font-weight: bold; border: 1px solid #059669; margin: 5px;'>💡 Feedback</a>")
+            .append("</div>")
             .append("<div class='footer'>")
-            .append("<p style='margin-bottom: 15px; font-size: 14px;'>Want to change your settings (e.g., number of questions per day, preferred topics)? <br><a href='").append(updatePreferencesUrl).append("' style='color: #4f46e5; text-decoration: none; font-weight: bold;'>Update your preferences here</a></p>")
-            .append("<p style='margin-bottom: 15px; font-size: 14px;'>Found an issue or have an idea? <br><a href='").append(feedbackUrl).append("' style='color: #4f46e5; text-decoration: none; font-weight: bold;'>Share feedback</a></p>")
-            .append("<p style='margin-bottom: 15px; font-size: 14px;'>Need a break from daily emails? <br><a href='").append(unsubscribeUrl).append("' style='color: #b91c1c; text-decoration: none; font-weight: bold;'>Pause / unsubscribe</a></p>")
             .append("&copy; 2026 Revision Platform. All rights reserved.")
             .append("</div>")
             .append("</div></body></html>");

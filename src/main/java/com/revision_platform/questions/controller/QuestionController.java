@@ -48,4 +48,18 @@ public class QuestionController {
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         return ResponseEntity.ok(questionService.getUserHistory(user, page, size));
     }
+    @GetMapping("/history/topics")
+    public ResponseEntity<java.util.Map<String, List<Question>>> getHistoryByTopic(@RequestParam String email) {
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return ResponseEntity.ok(questionService.getUserHistoryByTopic(user));
+    }
+
+    @PostMapping("/history/reset-topic")
+    public ResponseEntity<Void> resetTopicHistory(@RequestParam String email, @RequestParam String topic) {
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        questionService.resetTopicHistory(user, topic);
+        return ResponseEntity.ok().build();
+    }
 }
