@@ -44,6 +44,9 @@ public class UserConfig {
 
     private Integer questionCountPerDay;
 
+    @Column(name = "question_count_per_weekend")
+    private Integer questionCountPerWeekend;
+
     // e.g., "neetcode_150", "striver_sde_sheet"
     private String preferredList;
 

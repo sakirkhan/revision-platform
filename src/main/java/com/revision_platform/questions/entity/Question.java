@@ -12,6 +12,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "questions")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @Builder
 @NoArgsConstructor
